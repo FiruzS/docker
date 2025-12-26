@@ -1,0 +1,43 @@
+version: '3.8'
+
+volumes:
+  db_data:
+  web_data:
+
+services:
+  # БАЗА ДАННЫХ - ВСЁ ПРОСТО
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: joomla
+      MYSQL_USER: joomla
+      MYSQL_PASSWORD: joomla123
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # JOOMLA - ИСПОЛЬЗУЕМ СБОРКУ ИЗ Dockerfile
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      JOOMLA_DB_HOST: db
+      JOOMLA_DB_USER: joomla
+      JOOMLA_DB_PASSWORD: joomla123
+      JOOMLA_DB_NAME: joomla
+    volumes:
+      - web_data:/var/www/html
+    ports:
+      - "8083:80"
